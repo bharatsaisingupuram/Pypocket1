@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PyPocket</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#07111f;--card:#0d1b2b;--panel:#050d17;--line:#203850;--text:#eef6ff;--muted:#8fa5bc;--accent:#36a3ff}
+html,body{height:100%;overflow:hidden}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;overscroll-behavior:none}
+.app{height:100dvh;max-width:1050px;margin:auto;padding:5px 7px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+.top{height:30px;display:flex;justify-content:space-between;align-items:center;flex:0 0 auto}.brand{font-weight:900;font-size:20px}.pill{font-size:10px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:11px;overflow:hidden;min-height:0}
+.editor-card{flex:1 1 44%;display:flex;flex-direction:column;min-height:150px}.toolbar{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:5px}.btn{min-height:31px;border:1px solid #25435e;border-radius:9px;background:#11273d;color:#fff;font-weight:750;font-size:13px}.run{background:#138a55}.stop{background:#a52e3a}
+.editor{display:block;flex:1;width:calc(100% - 10px);margin:0 5px 4px;min-height:0;resize:none;background:var(--panel);color:#eaf4ff;border:1px solid #23415b;border-radius:9px;padding:9px;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;outline:0;caret-color:#67c4ff;tab-size:4}
+.editor:focus{border-color:#3d83b5;box-shadow:0 0 0 2px #1a4964}.filebar{height:22px;display:flex;justify-content:space-between;align-items:center;padding:0 8px;color:#a9bfd4;font-size:10px;flex:0 0 auto}.filebar span:first-child{color:#eaf4ff;font-weight:800}.status{padding:0 7px 4px;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.diagnostics{flex:0 0 30%;min-height:120px;display:flex;flex-direction:column;gap:4px;padding:4px}.diagnostics>.viewPanel{flex:1;min-height:0}
+.panel{min-height:0;background:#081321;border:1px solid #1b344b;border-radius:8px;display:flex;flex-direction:column;overflow:hidden}.panel-title{height:24px;display:flex;align-items:center;padding:0 7px;font-size:10px;font-weight:800;color:#cfe6fb;border-bottom:1px solid #1b344b}.panel pre{margin:0;padding:6px;flex:1;min-height:0;overflow:auto;white-space:pre-wrap;word-break:break-word;font:10px/1.35 ui-monospace,monospace;color:#e8f3ff}
+.history-card{display:none;position:fixed;inset:8% 5% auto;z-index:80;background:#0d1b2b;border:1px solid #31506a;border-radius:14px;box-shadow:0 20px 60px #0008;padding:10px;max-height:70%;overflow:auto}.history-card.show{display:block}.history-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:800}.history-item{width:100%;text-align:left;background:#10283d;color:#eaf4ff;border:1px solid #25445d;border-radius:9px;padding:8px;margin:4px 0}.history-item small{display:block;color:#8fa5bc;margin-top:2px}.quick-card{display:none;position:fixed;left:50%;bottom:var(--keyboard-offset,0px);transform:translateX(-50%);width:min(1050px,100%);z-index:50;background:rgba(10,25,40,.98);backdrop-filter:blur(12px);box-shadow:0 -5px 24px rgba(0,0,0,.28);border:1px solid #24445e;border-radius:12px 12px 0 0;padding-bottom:env(safe-area-inset-bottom)}.quick-card.show{display:block}.quick-title{display:flex;justify-content:space-between;padding:4px 8px 2px;font-size:10px;color:var(--muted)}.quick-title b{color:#e8f4ff}.phone-quick{display:flex;gap:4px;overflow-x:auto;padding:3px 5px 6px;scrollbar-width:none}.phone-quick::-webkit-scrollbar{display:none}.qkey{flex:0 0 auto;min-width:42px;height:35px;padding:0 10px;border:1px solid #2c4e6a;border-radius:8px;background:#112c45;color:#fff;font-weight:800;font-size:12px}.qkey.word{min-width:58px;background:#153854;border-color:#326788}.qkey.func{min-width:72px;background:#16415b;border-color:#3a7e9f}
+@media(min-width:700px){.diagnostics{grid-template-columns:repeat(4,1fr);grid-template-rows:1fr}.editor-card{flex-basis:46%}.diagnostics{flex-basis:25%}}
+@media(max-height:650px){.top{height:25px}.brand{font-size:17px}.editor-card{flex-basis:47%}.diagnostics{flex-basis:31%;min-height:105px}.toolbar{padding:3px}.btn{min-height:29px;font-size:12px}.panel-title{height:20px}.panel pre{font-size:9px}.editor{font-size:12px;padding:7px}}
+@media(max-width:420px){.pill{display:none}.diagnostics{flex-basis:31%;min-height:118px}.qkey{min-width:40px;height:34px}.quick-title span{display:none}}
+</style></head><body>
+<div class="app">
+  <div class="top"><div class="brand">🐍 PyPocket</div><div class="pill">Phone keyboard • all panels visible</div></div>
+  <div class="card editor-card">
+    <div class="toolbar"><button class="btn run" id="run">▶ Run</button><button class="btn stop" id="stop">■ Stop</button><button class="btn" id="clear">Clear</button><button class="btn" id="newFile">＋ New</button><button class="btn" id="openFile">📂 Open</button><button class="btn" id="saveFile">💾 Save</button><button class="btn" id="saveAs">Save As</button><button class="btn" id="historyBtn">🕘 History</button></div><input id="fileInput" type="file" accept=".py,.txt,text/plain" hidden>
+    <textarea id="editor" class="editor" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Python editor">print("Hello from PyPocket!")</textarea>
+    <div class="status" id="status">Untitled.py • Tap editor for phone keyboard.</div>
+  </div>
+  <div class="filebar"><span id="fileName">📄 Untitled.py</span><span id="saveState">Not saved</span></div>
+  <div class="card diagnostics">
+    <div style="display:flex;gap:4px;padding:4px;border-bottom:1px solid #1b344b;flex:0 0 auto">
+      <button class="btn panelTab active" data-panel="outputPanel">Output</button>
+      <button class="btn panelTab" data-panel="problemsPanel">Problems</button>
+      <button class="btn panelTab" data-panel="debugPanel">Debug Console</button>
+      <button class="btn panelTab" data-panel="terminalPanel">Terminal</button>
+    </div>
+    <section class="panel viewPanel" id="outputPanel"><div class="panel-title">OUTPUT</div><pre id="output">Ready.</pre></section>
+    <section class="panel viewPanel" id="problemsPanel" style="display:none"><div class="panel-title">PROBLEMS</div><pre id="problems">No problems.</pre></section>
+    <section class="panel viewPanel" id="debugPanel" style="display:none"><div class="panel-title">DEBUG CONSOLE</div><pre id="debug">Python engine: not loaded</pre></section>
+    <section class="panel viewPanel" id="terminalPanel" style="display:none"><div class="panel-title">TERMINAL</div><pre id="terminal">PyPocket terminal ready.</pre></section>
+  </div>
+  <div class="card quick-card" id="quickCard"><div class="quick-title"><b>Python Quick Keys</b><span>Symbols • Keywords • Functions</span></div><div class="phone-quick" id="phoneQuick"></div></div>
+  <div class="history-card" id="historyCard"><div class="history-head"><span>🕘 File History</span><button class="btn" id="closeHistory">Close</button></div><div id="historyList">No saved history yet.</div></div>
+</div>
+<script>
+const ed=document.getElementById('editor'),out=document.getElementById('output'),problems=document.getElementById('problems'),debug=document.getElementById('debug'),terminal=document.getElementById('terminal'),status=document.getElementById('status'),quick=document.getElementById('phoneQuick');
+let py=null,loading=null,stopped=false,lastOut='',lastErr='';
+let currentFile='Untitled.py';
+const fileInput=document.getElementById('fileInput'),fileNameEl=document.getElementById('fileName'),saveState=document.getElementById('saveState'),historyCard=document.getElementById('historyCard'),historyList=document.getElementById('historyList');
+function setFileName(n){currentFile=n||'Untitled.py';fileNameEl.textContent='📄 '+currentFile;document.title='PyPocket — '+currentFile}
+function saveLocal(){localStorage.setItem('pypocket:file:'+currentFile,ed.value);localStorage.setItem('pypocket:current',currentFile);saveState.textContent='Saved ✓';status.textContent=currentFile+' saved ✓';addHistory()}
+function addHistory(){let h=JSON.parse(localStorage.getItem('pypocket:history')||'[]');h.unshift({name:currentFile,code:ed.value,time:new Date().toLocaleString()});h=h.filter((x,i,a)=>i===a.findIndex(y=>y.name===x.name&&y.code===x.code)).slice(0,30);localStorage.setItem('pypocket:history',JSON.stringify(h))}
+function renderHistory(){let h=JSON.parse(localStorage.getItem('pypocket:history')||'[]');historyList.innerHTML=h.length?h.map((x,i)=>`<button class="history-item" data-i="${i}">📄 ${x.name}<small>${x.time}</small></button>`).join(''):'No saved history yet.';historyList.querySelectorAll('.history-item').forEach(b=>b.onclick=()=>{let x=h[+b.dataset.i];setFileName(x.name);ed.value=x.code;historyCard.classList.remove('show');saveState.textContent='History loaded';status.textContent=x.name+' loaded from history';focusEditor()})}
+async function downloadFile(name,content){
+  if(window.showSaveFilePicker){
+    try{
+      const handle=await window.showSaveFilePicker({suggestedName:name,types:[{description:'Python file',accept:{'text/x-python':['.py'],'text/plain':['.txt']}}]});
+      const writable=await handle.createWritable(); await writable.write(content); await writable.close();
+      window.__pypocketSaveHandle=handle; setFileName(handle.name||name); saveState.textContent='Saved to device ✓'; status.textContent=(handle.name||name)+' saved to your selected folder ✓'; return true;
+    }catch(e){ if(e&&e.name==='AbortError') return false; }
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:'text/x-python'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);return true;
+}
+async function saveDirect(){
+  if(window.__pypocketSaveHandle){
+    try{const w=await window.__pypocketSaveHandle.createWritable();await w.write(ed.value);await w.close();saveLocal();saveState.textContent='Saved to device ✓';status.textContent=currentFile+' saved ✓';return;}catch(e){}
+  }
+  saveLocal(); await downloadFile(currentFile,ed.value);
+}
+function newFile(){setFileName('Untitled.py');ed.value='';out.textContent='Ready.';problems.textContent='No problems.';debug.textContent='Python engine: '+(py?'ready':'not loaded');terminal.textContent='PyPocket terminal ready.';saveState.textContent='Not saved';status.textContent='New file';focusEditor()}
+document.getElementById('newFile').onclick=newFile;
+document.getElementById('openFile').onclick=()=>fileInput.click();
+fileInput.onchange=()=>{const f=fileInput.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{setFileName(f.name);ed.value=r.result;saveState.textContent='Opened';status.textContent=f.name+' opened ✓';addHistory();focusEditor()};r.readAsText(f);fileInput.value=''};
+document.getElementById('saveFile').onclick=()=>saveDirect();
+document.getElementById('saveAs').onclick=async()=>{
+  let n=prompt('Enter file name:',currentFile)||currentFile;if(!/\.(py|txt)$/i.test(n))n+='.py';setFileName(n);saveLocal();await downloadFile(currentFile,ed.value);
+};
+document.getElementById('historyBtn').onclick=()=>{renderHistory();historyCard.classList.add('show')};document.getElementById('closeHistory').onclick=()=>historyCard.classList.remove('show');
+const last=localStorage.getItem('pypocket:current');if(last){const c=localStorage.getItem('pypocket:file:'+last);if(c!==null){setFileName(last);ed.value=c;saveState.textContent='Local copy available'}}
+function focusEditor(){ed.focus({preventScroll:true})}
+function add(s){const a=ed.selectionStart,b=ed.selectionEnd;ed.value=ed.value.slice(0,a)+s+ed.value.slice(b);const p=a+s.length;focusEditor();ed.setSelectionRange(p,p)}
+const quickItems=[
+  ['(',')','symbol'],['[',']','symbol'],['{','}','symbol'],[':','symbol'],['=','symbol'],['\"','symbol'],["'","'",'symbol'],['_','symbol'],['#','symbol'],['+','symbol'],['-','symbol'],['*','symbol'],['/','symbol'],['%','symbol'],['<','symbol'],['>','symbol'],['==','symbol'],['!=','symbol'],['<=','symbol'],['>=','symbol'],['->','symbol'],[';','symbol'],
+  ['print()','print( )','func'],['input()','input( )','func'],['range()','range( )','func'],['len()','len( )','func'],['type()','type( )','func'],
+  ['if','if ','word'],['elif','elif ','word'],['else','else:','word'],['for','for ','word'],['while','while ','word'],['in','in ','word'],['def','def ','word'],['return','return ','word'],['import','import ','word'],['from','from ','word'],['as','as ','word'],['class','class ','word'],['try','try:','word'],['except','except ','word'],['finally','finally:','word'],['with','with ','word'],['True','True','word'],['False','False','word'],['None','None','word'],['and','and ','word'],['or','or ','word'],['not','not ','word'],['is','is ','word'],['pass','pass','word'],['break','break','word'],['continue','continue','word'],['async','async ','word'],['await','await ','word']
+];
+quickItems.forEach(([label,value,kind])=>{const b=document.createElement('button');b.className='qkey '+kind;b.type='button';b.textContent=label;b.title='Insert '+value;b.addEventListener('pointerdown',e=>e.preventDefault());b.onclick=()=>add(value);quick.appendChild(b)});
+function placeQuickBar(){if(!window.visualViewport)return;const vv=window.visualViewport;const offset=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);document.documentElement.style.setProperty('--keyboard-offset',offset+'px')}
+if(window.visualViewport){visualViewport.addEventListener('resize',placeQuickBar);visualViewport.addEventListener('scroll',placeQuickBar)}window.addEventListener('resize',placeQuickBar);placeQuickBar();
+ed.addEventListener('focus',()=>{quickCard.classList.add('show');status.textContent='Phone keyboard open • quick Python symbols are above it.';setTimeout(placeQuickBar,50)});ed.addEventListener('blur',()=>{quickCard.classList.remove('show');status.textContent='Tap the editor to open your phone keyboard.';setTimeout(placeQuickBar,50)});
+document.querySelectorAll('.panelTab').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.panelTab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.viewPanel').forEach(p=>p.style.display='none');document.getElementById(btn.dataset.panel).style.display='flex'});
+document.getElementById('run').onclick=async()=>{stopped=false;lastOut='';lastErr='';out.textContent='Running…';problems.textContent='Checking…';debug.textContent='Starting Python engine…';terminal.textContent='> python program started';try{const p=await load();if(stopped)return;p.setStdout({batched:s=>lastOut+=s+'\n'});p.setStderr({batched:s=>lastErr+=s+'\n'});await p.runPythonAsync(ed.value);if(!stopped){out.textContent=lastOut||'Finished with no output.';problems.textContent=lastErr||'No problems.';debug.textContent='Execution completed successfully.';terminal.textContent='> process exited with code 0';status.textContent='Finished ✓'}}catch(e){if(!stopped){lastErr=String(e);out.textContent='';problems.textContent=lastErr;debug.textContent='Execution error';terminal.textContent='> process exited with code 1';status.textContent='Execution error'}}};
+document.getElementById('stop').onclick=()=>{stopped=true;status.textContent='Stopped';out.textContent='Stopped.';terminal.textContent='> process stopped';debug.textContent='Execution stopped by user'};
+document.getElementById('clear').onclick=()=>{ed.value='';out.textContent='Ready.';problems.textContent='No problems.';debug.textContent='Python engine: '+(py?'ready':'not loaded');terminal.textContent='PyPocket terminal ready.';focusEditor()};
+async function load(){if(py)return py;if(loading)return loading;status.textContent='Loading Python…';debug.textContent='Loading Pyodide…';loading=import('https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.mjs').then(m=>m.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/'})).then(x=>(py=x,debug.textContent='Python engine: ready',status.textContent='Python ready',x)).catch(e=>(loading=null,debug.textContent='Python load error',Promise.reject(e)));return loading}
+</script></body></html>
